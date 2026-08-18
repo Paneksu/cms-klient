@@ -15,3 +15,8 @@ export * from "./typy";
 export * from "./schemat";
 export * from "./walidacja";
 export * from "./interpolacja";
+// UWAGA: `./hmac` celowo NIE jest tu re-eksportowany. Ten plik (`index.ts`) trafia też do
+// bundla klienta (importowany przez `components/edytor/Edytor.tsx`, "use client") — `hmac.ts`
+// używa `node:crypto`, którego webpack nie potrafi (i nie powinien) spakować do przeglądarki.
+// Kod serwerowy importuje `@panekweb/cms/hmac` wprost (osobny subpath w package.json.exports),
+// nigdy przez ten barrel. Odkryte przy pierwszym `next build` po dodaniu HMAC (raport fazy 2/2).
