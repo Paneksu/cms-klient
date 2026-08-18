@@ -19,12 +19,59 @@ export type TypPola =
   | "lista"
   | "grupa";
 
+/**
+ * Reguły językowe z `copy.md` jako DANE (faza 5, część 2 planu): silnik walidacji (`reguly.ts`)
+ * jest wspólny dla wszystkich klientów, ale KTÓRE reguły obowiązują dane pole i JAKIE mają
+ * parametry (lista słów zakazanych, kanoniczny zapis telefonu…) jest konfiguracją per pole
+ * (`Pole.reguly`) i per strona (`SchematStrony.regulyKopii`) — dopisanie reguły dla kolejnego
+ * klienta nie dotyka silnika. `wykrzykniki` NIE jest tu wymieniona: to reguła CAŁEGO dokumentu
+ * ("maksimum jeden wykrzyknik NA CAŁY DOKUMENT, nie na pole" — zlecenie), więc nie da się jej
+ * przypisać do pojedynczego pola — silnik liczy ją zawsze, dla każdego dokumentu, niezależnie
+ * od `reguly` konkretnych pól.
+ */
+export type RegulaId =
+  | "zakazane_slowa"
+  | "zakazane_zwroty"
+  | "polpauza"
+  | "format_ceny"
+  | "telefon"
+  | "dlugosc_meta_title"
+  | "dlugosc_meta_description"
+  | "forma_ty";
+
+/**
+ * Parametry reguł językowych dla JEDNEJ strony — słowa zakazane, kanoniczny zapis telefonu,
+ * progi długości meta. Dokładnie to jest "danymi, nie kodem rozsianym po komponentach": nowy
+ * klient dostaje własną konfigurację, silnik (`reguly.ts`) się nie zmienia.
+ */
+export interface KonfiguracjaRegulKopii {
+  readonly zakazaneSlowa?: readonly string[];
+  readonly zakazaneZwroty?: readonly string[];
+  /** Dokładny, poprawny zapis telefonu z twardymi spacjami (U+00A0), np. `"796 696 992"`. */
+  readonly telefonKanoniczny?: string;
+  /** Maks. wykrzykników na CAŁY dokument. Domyślnie 1 — ostrzeżenie przy N+1, blokada od N+2. */
+  readonly maksWykrzyknikowDokument?: number;
+  /** Domyślnie 60. */
+  readonly metaTitleMaks?: number;
+  /** Domyślnie 120. */
+  readonly metaDescriptionMin?: number;
+  /** Domyślnie 165. */
+  readonly metaDescriptionMaks?: number;
+}
+
 /** Właściwości wspólne każdego pola — to, co panel potrzebuje, żeby wygenerować formularz. */
 interface PoleWspolne {
   readonly etykieta: string;
   readonly pomoc?: string;
   /** Maks. długość (pola tekstowe) albo maks. liczba elementów (lista). */
   readonly maks?: number;
+  /**
+   * Reguły językowe copy.md obowiązujące TO pole (silnik: `reguly.ts`). Which reguły obowiązują
+   * dane pole wynika WYŁĄCZNIE stąd — panel i trasa publikacji nigdy nie zgadują reguł z typu
+   * pola czy z nazwy. Pola strukturalne (`grupa`, `lista`) same nie niosą tekstu, więc `reguly`
+   * u nich nie ma znaczenia — reguły dopisuje się na polach-liściach wewnątrz.
+   */
+  readonly reguly?: readonly RegulaId[];
 }
 
 export interface PoleTekst extends PoleWspolne {
@@ -137,6 +184,8 @@ export interface SchematStrony {
   readonly wspolne: SchematPol;
   readonly meta: SchematPol;
   readonly sekcje: readonly SekcjaDefinicja[];
+  /** Parametry reguł językowych tej strony (słowa zakazane, telefon kanoniczny…). Brak = reguły z `reguly` pól i tak działają, ale bez list/progów (np. `zakazane_slowa` bez skonfigurowanej listy nie zgłosi nic). */
+  readonly regulyKopii?: KonfiguracjaRegulKopii;
 }
 
 // ── Kształt dokumentu (runtime, `wersje.dane`) ──────────────────────────────────────

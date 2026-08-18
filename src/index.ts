@@ -15,6 +15,9 @@ export * from "./typy";
 export * from "./schemat";
 export * from "./walidacja";
 export * from "./interpolacja";
+// Silnik reguł językowych copy.md (faza 5, część 2) — bez `node:*`, bezpieczny w bundlu klienta
+// (panel woła `sprawdzWartoscPola` na żywo z "use client" `PoleFormularza.tsx`).
+export * from "./reguly";
 // `obrazy.ts` nie importuje `node:*` (używa `Uint8Array`/`File`/`canvas`, wszystkie dostępne
 // po obu stronach zależnie od kontekstu wywołania) — bezpieczne w barrelu klienta, w
 // odróżnieniu od `hmac.ts` niżej.

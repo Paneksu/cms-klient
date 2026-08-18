@@ -9,6 +9,7 @@
  */
 
 import type {
+  KonfiguracjaRegulKopii,
   OpcjaWyboru,
   Pole,
   PoleBogate,
@@ -22,6 +23,7 @@ import type {
   PoleTekst,
   PoleTekstDlugi,
   PoleWybor,
+  RegulaId,
   SchematPol,
   SchematStrony,
   SekcjaDefinicja,
@@ -30,16 +32,44 @@ import type {
 } from "./typy";
 
 type OpcjeWspolne = { pomoc?: string; maks?: number };
+/** Pola tekstowe (`tekst`/`tekst_dlugi`/`bogaty`) dodatkowo przyjmują `reguly` (faza 5, część 2). */
+type OpcjeTekstowe = OpcjeWspolne & { reguly?: readonly RegulaId[] };
+
+/**
+ * Zestaw reguł copy.md domyślny dla KAŻDEGO pola tekstowego, chyba że wywołanie jawnie poda
+ * `reguly` (nawet pustą tablicę — to świadomy opt-out, np. dla `telefonHref`, które niesie
+ * `tel:+48…`, nie tekst do wyświetlenia). Decyzja "gustu": zamiast wymagać wypisania reguł
+ * przy każdym z ~150 pól schematu ddcarspa (mechaniczne, błędogenne kopiowanie), silnik
+ * przyjmuje sensowny domyślny zestaw, który i tak nic nie zrobi bez skonfigurowanych list
+ * słów/telefonu w `SchematStrony.regulyKopii` — a każde pole może go INDYWIDUALNIE nadpisać.
+ * `dlugosc_meta_*` świadomie NIE wchodzi tu — ma sens tylko na `meta.title`/`meta.description`,
+ * dopisywane tam wprost.
+ */
+export const DOMYSLNE_REGULY_TEKSTU: readonly RegulaId[] = [
+  "zakazane_slowa",
+  "zakazane_zwroty",
+  "polpauza",
+  "format_ceny",
+  "telefon",
+  "forma_ty",
+];
+
+function regulyPola(opcje: OpcjeTekstowe): readonly RegulaId[] | undefined {
+  return opcje.reguly ?? DOMYSLNE_REGULY_TEKSTU;
+}
 
 export const pole = {
-  tekst(etykieta: string, wartoscDomyslna = "", opcje: OpcjeWspolne = {}): PoleTekst {
-    return { typ: "tekst", etykieta, wartoscDomyslna, ...opcje };
+  tekst(etykieta: string, wartoscDomyslna = "", opcje: OpcjeTekstowe = {}): PoleTekst {
+    const { reguly: _reguly, ...reszta } = opcje;
+    return { typ: "tekst", etykieta, wartoscDomyslna, ...reszta, reguly: regulyPola(opcje) };
   },
-  tekstDlugi(etykieta: string, wartoscDomyslna = "", opcje: OpcjeWspolne = {}): PoleTekstDlugi {
-    return { typ: "tekst_dlugi", etykieta, wartoscDomyslna, ...opcje };
+  tekstDlugi(etykieta: string, wartoscDomyslna = "", opcje: OpcjeTekstowe = {}): PoleTekstDlugi {
+    const { reguly: _reguly, ...reszta } = opcje;
+    return { typ: "tekst_dlugi", etykieta, wartoscDomyslna, ...reszta, reguly: regulyPola(opcje) };
   },
-  bogaty(etykieta: string, wartoscDomyslna = "", opcje: OpcjeWspolne = {}): PoleBogate {
-    return { typ: "bogaty", etykieta, wartoscDomyslna, ...opcje };
+  bogaty(etykieta: string, wartoscDomyslna = "", opcje: OpcjeTekstowe = {}): PoleBogate {
+    const { reguly: _reguly, ...reszta } = opcje;
+    return { typ: "bogaty", etykieta, wartoscDomyslna, ...reszta, reguly: regulyPola(opcje) };
   },
   liczba(
     etykieta: string,
@@ -92,6 +122,7 @@ export function zdefiniujSchemat(definicja: {
   wspolne: SchematPol;
   meta: SchematPol;
   sekcje: readonly SekcjaDefinicja[];
+  regulyKopii?: KonfiguracjaRegulKopii;
 }): SchematStrony {
   const idy = new Set<string>();
   for (const s of definicja.sekcje) {

@@ -11,6 +11,7 @@
     "./schemat": "./src/schemat.ts",
     "./walidacja": "./src/walidacja.ts",
     "./interpolacja": "./src/interpolacja.ts",
+    "./reguly": "./src/reguly.ts",
     "./hmac": "./src/hmac.ts",
     "./hash": "./src/hash.ts",
     "./obrazy": "./src/obrazy.ts",
