@@ -21,6 +21,16 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 /** Domyślne okno ważności podpisu — 5 minut, zgodnie ze zleceniem (ochrona przed replay). */
 export const OKNO_WAZNOSCI_PODPISU_MS = 5 * 60 * 1000;
 
+/**
+ * Okno ważności podpisu podglądu (token w URL `/podglad?t=...` I ciasteczko `cms_podglad`) —
+ * 30 minut, zgodnie ze zleceniem fazy 3 ("faza 3, część pierwsza — tryb podglądu"). Stała
+ * jest TU, w paczce wspólnej dla obu aplikacji (`edytor.panekweb.pl/lib/podglad.ts` generuje
+ * token, `ddcarspa.pl/lib/podgladAuth.ts` weryfikuje token i ciasteczko), z tego samego
+ * powodu co `OKNO_WAZNOSCI_PODPISU_MS` wyżej: dwie niezależne kopie tej samej liczby w dwóch
+ * repo to gwarantowany rozjazd (patrz komentarz nad `OKNO_WAZNOSCI_PODPISU_MS`).
+ */
+export const OKNO_WAZNOSCI_PODGLADU_MS = 30 * 60 * 1000;
+
 /** `${timestamp}.${klucz}` podpisane HMAC-SHA256 sekretem strony, zwrócone jako hex. */
 export function podpiszWebhook(sekretHmac: string, kluczStrony: string, timestamp: string): string {
   return createHmac("sha256", sekretHmac).update(`${timestamp}.${kluczStrony}`).digest("hex");

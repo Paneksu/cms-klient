@@ -49,3 +49,14 @@ function uporzadkuj(wartosc: unknown): unknown {
 export function hashSchematu(schemat: unknown): string {
   return createHash("sha256").update(kanonicznyJson(schemat)).digest("hex");
 }
+
+/**
+ * Alias semantyczny `hashSchematu` dla DOKUMENTU TREŚCI, nie schematu (`GET
+ * /api/podglad-danych`, faza 3 planu, część 2 — patrz `app/api/podglad-danych/route.ts` w
+ * panelu). Implementacja jest identyczna (SHA-256 kanonicznego JSON-a dowolnej wartości) —
+ * osobna nazwa istnieje wyłącznie po to, żeby czytający `route.ts` nie musiał się zastanawiać,
+ * czy "hashSchematu" zastosowany do `wersje.dane` to pomyłka kopiuj-wklej.
+ */
+export function hashDokumentuTresci(dokument: unknown): string {
+  return hashSchematu(dokument);
+}
