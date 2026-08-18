@@ -13,6 +13,7 @@
     "./interpolacja": "./src/interpolacja.ts",
     "./hmac": "./src/hmac.ts",
     "./hash": "./src/hash.ts",
+    "./obrazy": "./src/obrazy.ts",
     "./podglad": "./src/podglad/index.ts",
     "./package.json": "./package.json"
   },

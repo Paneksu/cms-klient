@@ -15,6 +15,10 @@ export * from "./typy";
 export * from "./schemat";
 export * from "./walidacja";
 export * from "./interpolacja";
+// `obrazy.ts` nie importuje `node:*` (używa `Uint8Array`/`File`/`canvas`, wszystkie dostępne
+// po obu stronach zależnie od kontekstu wywołania) — bezpieczne w barrelu klienta, w
+// odróżnieniu od `hmac.ts` niżej.
+export * from "./obrazy";
 // UWAGA: `./hmac` celowo NIE jest tu re-eksportowany. Ten plik (`index.ts`) trafia też do
 // bundla klienta (importowany przez `components/edytor/Edytor.tsx`, "use client") — `hmac.ts`
 // używa `node:crypto`, którego webpack nie potrafi (i nie powinien) spakować do przeglądarki.
