@@ -1,0 +1,24 @@
+{
+  "name": "@panekweb/cms",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kontrakt schema-driven CMS-a wizytówek: typy pól, builder schematu, walidacja zodem, interpolacja cen. Konsument (panel edytora, strony klientów) importuje wprost ze źródeł TS — patrz README.md.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./typy": "./src/typy.ts",
+    "./schemat": "./src/schemat.ts",
+    "./walidacja": "./src/walidacja.ts",
+    "./interpolacja": "./src/interpolacja.ts",
+    "./package.json": "./package.json"
+  },
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "zod": "^3.24.1 || ^4.0.0"
+  }
+}
