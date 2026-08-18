@@ -10,6 +10,11 @@ Kontrakt schema-driven między panelem `edytor.panekweb.pl` a stronami-wizytówk
   lub niepoprawne pole nigdy nie rzuca wyjątkiem, dostaje wartość domyślną ze schematu.
 - `rozwinInterpolacje`, `formatujCene`, `zawieraTokenCeny` — token `{cena.<ścieżka>}`
   rozwijany do kwoty z sekcji `cennik` dokumentu (`src/interpolacja.ts`).
+- `podpiszWebhook`, `zweryfikujPodpisWebhook` — podpis HMAC-SHA256, subpath `@panekweb/cms/hmac`
+  (świadomie poza barrelem `index.ts` — używa `node:crypto`, serwer-only), `src/hmac.ts`.
+- `kanonicznyJson`, `hashSchematu` — hash kanonicznego JSON-a schematu (`GET /api/cms/schemat`
+  strony ↔ `tresci.strony.schemat_hash` panelu), subpath `@panekweb/cms/hash`, też
+  serwer-only i poza barrelem, ten sam powód co `hmac.ts`, `src/hash.ts`.
 
 ## Jak to jest konsumowane — brak kroku budowania
 

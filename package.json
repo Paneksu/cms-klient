@@ -12,6 +12,7 @@
     "./walidacja": "./src/walidacja.ts",
     "./interpolacja": "./src/interpolacja.ts",
     "./hmac": "./src/hmac.ts",
+    "./hash": "./src/hash.ts",
     "./package.json": "./package.json"
   },
   "types": "./src/index.ts",
