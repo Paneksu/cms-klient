@@ -39,6 +39,20 @@ export function PrzyciskEdycji({
   onKlik: (e: { preventDefault: () => void; stopPropagation: () => void }) => void;
   wariant?: "tekst" | "obraz";
 }) {
+  // W7 (19.08.2026, "uwagi po wdrożeniu"): zmierzone na żywo 24×24 px — na dotyku ta plakietka
+  // jest JEDYNĄ wskazówką, że w zdjęcie da się kliknąć (patrz nagłówek pliku), więc poniżej
+  // minimum 44×44 px boli bardziej niż gdziekolwiek indziej w panelu. Rozwiązanie: DWIE warstwy
+  // — zewnętrzny `<span>` jest POLEM DOTYKU 44×44 px (przezroczysty, to on niesie
+  // `role="button"`/`onClick`), wewnętrzny jest WIDOCZNYM glifem, dokładnie tej samej
+  // wielkości (1.5rem) i wyglądu co przed poprawką. Pozycjonujący `top`/`insetInlineEnd`
+  // zostaje BEZ ZMIAN na zewnętrznym elemencie — to ten sam róg co wcześniej, więc powiększone
+  // pole rośnie W GŁĄB pola/zdjęcia (`alignItems`/`justifyContent` trzyma widoczny glif
+  // dokładnie w tym rogu), NIGDY poza jego obrys. Istotne dla wariantu `"obraz"`: przodek ma
+  // `overflow-hidden` (patrz nagłówek pliku) — wzrost NA ZEWNĄTRZ zostałby po prostu przycięty
+  // i cel dotykowy wcale by się nie powiększył.
+  const rozmiarWidoczny = "1.5rem";
+  const rozmiarDotyku = "2.75rem"; // 44px
+
   return (
     <span
       role="button"
@@ -56,23 +70,34 @@ export function PrzyciskEdycji({
         ...(wariant === "obraz"
           ? { top: "0.5rem", insetInlineEnd: "0.5rem" }
           : { top: "50%", insetInlineEnd: "-1.6rem", transform: "translateY(-50%)" }),
-        width: "1.5rem",
-        height: "1.5rem",
-        borderRadius: "999px",
-        border: "1px solid #fff",
-        background: "#FEBD59",
-        color: "#141815",
-        fontSize: "0.7rem",
-        lineHeight: 1,
+        width: rozmiarDotyku,
+        height: rozmiarDotyku,
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        alignItems: wariant === "obraz" ? "flex-start" : "center",
+        justifyContent: "flex-end",
         zIndex: 2147483000,
-        boxShadow: "0 1px 4px rgba(20,24,21,0.4)",
         cursor: "pointer",
       }}
     >
-      ✎
+      <span
+        aria-hidden="true"
+        style={{
+          width: rozmiarWidoczny,
+          height: rozmiarWidoczny,
+          borderRadius: "999px",
+          border: "1px solid #fff",
+          background: "#FEBD59",
+          color: "#141815",
+          fontSize: "0.7rem",
+          lineHeight: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 1px 4px rgba(20,24,21,0.4)",
+        }}
+      >
+        ✎
+      </span>
     </span>
   );
 }

@@ -106,6 +106,43 @@ function wzorzecTelefonuLuzny(): RegExp {
   return /7\d{2}[  .-]?\d{3}[  .-]?\d{3}/g;
 }
 
+/**
+ * Normalizuje zapis numeru telefonu w dowolnym tekście: dopasowania `wzorzecTelefonuLuzny`,
+ * których CYFRY zgadzają się z kanonicznym numerem (tylko separator jest inny — zwykła spacja,
+ * kropka, myślnik), zamienia na dokładny zapis kanoniczny (z twardymi spacjami). Dopasowania
+ * o INNYCH cyfrach (czyli realnie inny numer, nie literówka w separatorze) zostają nietknięte —
+ * to nie jest ten sam numer i nie wolno go po cichu podmienić.
+ *
+ * Naprawia P2 ("publikacja blokowana błędem, którego klient nie umie naprawić", 19.08.2026):
+ * reguła `telefon` istnieje po to, żeby numer nigdy nie złamał się na dwa wiersze — cel
+ * typograficzny, który system osiąga SAM, bez żądania od redaktora znaku niewpisywalnego
+ * z klawiatury (twarda spacja, U+00A0). Blokada zostaje jako siatka bezpieczeństwa na
+ * WŁAŚCIWIE inny numer (patrz `sprawdzTelefon` niżej) — nie na drift formatowania.
+ */
+export function normalizujTelefonWTekscie(tekst: string, kanoniczny: string | undefined): string {
+  if (!kanoniczny) return tekst;
+  const cyfryKanoniczne = kanoniczny.replace(/\D/g, "");
+  if (!cyfryKanoniczne) return tekst;
+  return tekst.replace(wzorzecTelefonuLuzny(), (dopasowanie) =>
+    dopasowanie.replace(/\D/g, "") === cyfryKanoniczne ? kanoniczny : dopasowanie
+  );
+}
+
+/**
+ * Normalizuje WARTOŚĆ JEDNEGO POLA wobec reguł, które to pole niesie — odpowiednik
+ * `sprawdzWartoscPola`, ale POPRAWIA tekst zamiast tylko zgłaszać naruszenie. Dziś obejmuje
+ * wyłącznie regułę `telefon` (patrz `normalizujTelefonWTekscie`); inne reguły (zakazane słowa,
+ * półpauza…) dotyczą TREŚCI, nie formatu, więc nie da się ich "naprawić" bez zmiany sensu
+ * zdania — te zostają wyłącznie ostrzeżeniami/blokadami z `sprawdzWartoscPola`.
+ */
+export function normalizujWartoscPola(p: Pole, wartosc: unknown, config: KonfiguracjaRegulKopii = {}): unknown {
+  if (!p.reguly || p.reguly.length === 0) return wartosc;
+  if (p.typ !== "tekst" && p.typ !== "tekst_dlugi" && p.typ !== "bogaty") return wartosc;
+  if (typeof wartosc !== "string" || wartosc.length === 0) return wartosc;
+  if (!p.reguly.includes("telefon")) return wartosc;
+  return normalizujTelefonWTekscie(wartosc, config.telefonKanoniczny);
+}
+
 function sprawdzTelefon(tekst: string, sciezka: string, kanoniczny: string | undefined): Naruszenie[] {
   if (!kanoniczny) return [];
   const wzorzec = wzorzecTelefonuLuzny();
@@ -329,6 +366,59 @@ function idzPoPolachGrupy(
       wynik.push(...sprawdzWartoscPola(p, sciezka, wartosc, config));
     }
   }
+}
+
+function idzPoPolachGrupyNormalizujac(
+  schemat: SchematPol,
+  dane: unknown,
+  config: KonfiguracjaRegulKopii,
+  zmieniono: { licznik: number }
+): Record<string, unknown> {
+  const zrodlo = dane && typeof dane === "object" && !Array.isArray(dane) ? (dane as Record<string, unknown>) : {};
+  const wynik: Record<string, unknown> = { ...zrodlo };
+  for (const [klucz, p] of Object.entries(schemat)) {
+    const wartosc = zrodlo[klucz];
+    if (p.typ === "grupa") {
+      wynik[klucz] = idzPoPolachGrupyNormalizujac(p.pola, wartosc, config, zmieniono);
+    } else if (p.typ === "lista") {
+      const elementy = Array.isArray(wartosc) ? wartosc : [];
+      wynik[klucz] = elementy.map((el) => idzPoPolachGrupyNormalizujac(p.elementSchema, el, config, zmieniono));
+    } else {
+      const znormalizowana = normalizujWartoscPola(p, wartosc, config);
+      if (znormalizowana !== wartosc) zmieniono.licznik += 1;
+      wynik[klucz] = znormalizowana;
+    }
+  }
+  return wynik;
+}
+
+/**
+ * Normalizuje CAŁY dokument wg reguł formatu (dziś: `telefon`) — odpowiednik
+ * `zbierzNaruszeniaDokumentu`, ale POPRAWIA zamiast zgłaszać. Woła to `sprawdzRegulyPublikacji`
+ * (`lib/tresc.ts`) PRZED sprawdzeniem naruszeń: numer wpisany zwykłymi spacjami (ręcznie albo
+ * przez uzupełnienie wartością domyślną sprzed tej poprawki) dostaje twarde spacje po cichu,
+ * zamiast blokować publikację żądaniem znaku niewpisywalnego z klawiatury (P2, 19.08.2026).
+ * Zwraca `zmieniono: 0`, gdy dokument już był czysty — wołający wtedy nie musi nic dopisywać
+ * z powrotem do bazy.
+ */
+export function normalizujDokument(
+  schemat: SchematStrony,
+  dokument: DokumentTresci
+): { dokument: DokumentTresci; zmieniono: number } {
+  const config = schemat.regulyKopii ?? {};
+  const zmieniono = { licznik: 0 };
+
+  const meta = idzPoPolachGrupyNormalizujac(schemat.meta, dokument.meta, config, zmieniono);
+  const wspolne = idzPoPolachGrupyNormalizujac(schemat.wspolne, dokument.wspolne, config, zmieniono);
+
+  const mapaDef = new Map(schemat.sekcje.map((s) => [s.id, s]));
+  const sekcje = dokument.sekcje.map((sekcjaDok) => {
+    const def = mapaDef.get(sekcjaDok.id);
+    if (!def) return sekcjaDok;
+    return { ...sekcjaDok, pola: idzPoPolachGrupyNormalizujac(def.pola, sekcjaDok.pola, config, zmieniono) };
+  });
+
+  return { dokument: { ...dokument, meta, wspolne, sekcje }, zmieniono: zmieniono.licznik };
 }
 
 /**
