@@ -12,4 +12,5 @@
 export * from "./kontrakt";
 export { Sekcja } from "./Sekcja";
 export { Edytowalne } from "./Edytowalne";
+export { EdytowalnyObraz } from "./EdytowalnyObraz";
 export { PodgladNasluch } from "./PodgladNasluch";

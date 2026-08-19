@@ -25,17 +25,25 @@ export const ZRODLO_WIADOMOSCI_CMS = "panekweb-cms" as const;
  *  samego powodu co `OKNO_WAZNOSCI_PODGLADU_MS` w `../hmac.ts`. */
 export const DEBOUNCE_PATCH_MS = 80;
 
+// Uwaga: `cms:wysokosc` istniało tu wcześniej (panel dopasowywał wysokość `<iframe>` do
+// wysokości dokumentu). Usunięte — `<iframe>` ma na sztywno `h-full w-full` (`RamkaPodgladu.tsx`),
+// więc obserwator wysyłający tę wiadomość nie miał żadnego efektu po stronie panelu. Martwa
+// wiadomość w kontrakcie, który jedzie tarballem do każdej kolejnej wizytówki, tylko myli.
 export type WiadomoscRamkaDoPanelu =
   | { zrodlo: typeof ZRODLO_WIADOMOSCI_CMS; typ: "cms:gotowy"; sekcje: string[] }
   | { zrodlo: typeof ZRODLO_WIADOMOSCI_CMS; typ: "cms:klik"; pole: string; typPola: string; sekcja: string }
-  | { zrodlo: typeof ZRODLO_WIADOMOSCI_CMS; typ: "cms:hover"; pole: string | null }
-  | { zrodlo: typeof ZRODLO_WIADOMOSCI_CMS; typ: "cms:wysokosc"; px: number };
+  | { zrodlo: typeof ZRODLO_WIADOMOSCI_CMS; typ: "cms:hover"; pole: string | null };
 
 export type WiadomoscPanelDoRamki =
   | { zrodlo: typeof ZRODLO_WIADOMOSCI_CMS; typ: "cms:patch"; pole: string; wartosc: string }
   | { zrodlo: typeof ZRODLO_WIADOMOSCI_CMS; typ: "cms:podswietl"; pole: string | null }
   | { zrodlo: typeof ZRODLO_WIADOMOSCI_CMS; typ: "cms:przewin"; pole: string }
-  | { zrodlo: typeof ZRODLO_WIADOMOSCI_CMS; typ: "cms:przeladuj" };
+  | { zrodlo: typeof ZRODLO_WIADOMOSCI_CMS; typ: "cms:przeladuj" }
+  // Miękkie odświeżenie po zapisie wartości niepatchowalnej (liczba, przełącznik, obraz, link,
+  // cała tablica listy) — ramka woła `useRouter().refresh()`, które re-pobiera drzewo RSC
+  // zachowując pozycję przewinięcia i stan komponentów. `cms:przeladuj` zostaje dla przypadków
+  // wymagających twardego przeładowania (zmiana kolejności/widoczności sekcji).
+  | { zrodlo: typeof ZRODLO_WIADOMOSCI_CMS; typ: "cms:odswiez" };
 
 /** Strażnik kształtu — sprawdza WYŁĄCZNIE obecność `zrodlo`/`typ`, nie cały wariant (to robi
  *  wywołujący, po `dane.typ`, bo TypeScript nie zawęzi discriminated union z samego `unknown`). */

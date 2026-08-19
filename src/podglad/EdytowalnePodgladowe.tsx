@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { pobierzPatch, subskrybujPatch } from "./magazynPatchy";
 import { ZRODLO_WIADOMOSCI_CMS, type WiadomoscRamkaDoPanelu } from "./kontrakt";
+import { PrzyciskEdycji } from "./PrzyciskEdycji";
 
 /**
  * Implementacja klikalnego pola w podglądzie — RENDEROWANA WYŁĄCZNIE przez `Edytowalne.tsx`,
@@ -53,6 +54,19 @@ export function EdytowalnePodgladowe({
     setDotykowy(window.matchMedia("(hover: none)").matches);
   }, []);
 
+  // Punkt 2c zakresu: na desktopie klik w tekst wewnątrz linku/przycisku strony JEST
+  // przechwytywany (`preventDefault` w `klik()` niżej) — technicznie nie nawiguje — ale
+  // redaktor tego nie wie i boi się kliknąć. Rozwiązanie: pokazać tę samą plakietkę ✎, którą
+  // dotykowe urządzenia mają zawsze, także na desktopie PRZY NAJECHANIU, ale tylko dla pól
+  // faktycznie zagnieżdżonych w elemencie nawigującym — zwykły akapit dostaje wyłącznie
+  // `cursor: pointer`, żeby nie zaśmiecać podglądu plakietką przy każdym zdaniu.
+  const refSpan = useRef<HTMLSpanElement>(null);
+  const [wewnatrzLinku, setWewnatrzLinku] = useState(false);
+  const [najechany, setNajechany] = useState(false);
+  useEffect(() => {
+    setWewnatrzLinku(!!refSpan.current?.closest("a[href], button"));
+  }, []);
+
   function klik(e: { preventDefault: () => void; stopPropagation: () => void }) {
     // preventDefault+stopPropagation: pole bywa zagnieżdżone w `<a>`/`<button>` strony (np.
     // `ctaGlowne` wewnątrz przycisku CTA) — kliknięcie ma otworzyć pole w panelu, NIE
@@ -63,46 +77,29 @@ export function EdytowalnePodgladowe({
   }
 
   function hover(aktywne: boolean) {
+    setNajechany(aktywne);
     wyslijDoPanelu({ zrodlo: ZRODLO_WIADOMOSCI_CMS, typ: "cms:hover", pole: aktywne ? pole : null });
   }
 
+  // Na dotyku pokazujemy plakietkę ZAWSZE (jedyny sposób trafić palcem w mały fragment
+  // tekstu) — dla myszy tylko, gdy pole jest w linku/przycisku I jest najechane. `position:
+  // relative` ustawiamy zawsze (nie tylko dla dotyku jak wcześniej): to jedyny sposób, żeby
+  // plakietka desktopowa miała się względem czego pozycjonować, i nie ma wpływu na layout.
+  const pokazPlakietke = dotykowy || (wewnatrzLinku && najechany);
+
   return (
     <span
+      ref={refSpan}
       data-cms-pole={pole}
       data-cms-sekcja={sekcja}
       data-cms-typ={typ}
       onClick={klik}
       onMouseEnter={() => hover(true)}
       onMouseLeave={() => hover(false)}
-      style={{ cursor: "pointer", position: dotykowy ? "relative" : undefined }}
+      style={{ cursor: "pointer", position: "relative" }}
     >
       {patch ?? children}
-      {dotykowy && (
-        <button
-          type="button"
-          aria-label="Edytuj to pole"
-          onClick={klik}
-          style={{
-            position: "absolute",
-            top: "-0.5rem",
-            insetInlineEnd: "-0.5rem",
-            width: "1.35rem",
-            height: "1.35rem",
-            borderRadius: "999px",
-            border: "1px solid #fff",
-            background: "#FEBD59",
-            color: "#141815",
-            fontSize: "0.68rem",
-            lineHeight: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2147483000,
-          }}
-        >
-          ✎
-        </button>
-      )}
+      {pokazPlakietke && <PrzyciskEdycji etykieta="Edytuj to pole" onKlik={klik} />}
     </span>
   );
 }
