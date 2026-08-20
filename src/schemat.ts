@@ -31,7 +31,9 @@ import type {
   WartoscObraz,
 } from "./typy";
 
-type OpcjeWspolne = { pomoc?: string; maks?: number };
+// `ukryte` w `OpcjeWspolne` (nie tylko w `PoleWspolne`): wystarcza tu dopisać RAZ, bo KAŻDA
+// fabryka niżej robi `...opcje` na budowanym obiekcie pola — nie trzeba dotykać ani jednej z nich.
+type OpcjeWspolne = { pomoc?: string; maks?: number; ukryte?: boolean };
 /** Pola tekstowe (`tekst`/`tekst_dlugi`/`bogaty`) dodatkowo przyjmują `reguly` (faza 5, część 2). */
 type OpcjeTekstowe = OpcjeWspolne & { reguly?: readonly RegulaId[] };
 

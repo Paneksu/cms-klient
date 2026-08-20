@@ -15,6 +15,9 @@ export * from "./typy";
 export * from "./schemat";
 export * from "./walidacja";
 export * from "./interpolacja";
+// Widoczność pól (`ukryte`, punkt 6a planu przycięcia zakresu) — czysta prezentacja
+// schematu, zero zależności, bezpieczna w bundlu klienta (patrz nagłówek `widocznosc.ts`).
+export * from "./widocznosc";
 // Silnik reguł językowych copy.md (faza 5, część 2) — bez `node:*`, bezpieczny w bundlu klienta
 // (panel woła `sprawdzWartoscPola` na żywo z "use client" `PoleFormularza.tsx`).
 export * from "./reguly";

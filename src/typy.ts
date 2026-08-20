@@ -72,6 +72,20 @@ interface PoleWspolne {
    * u nich nie ma znaczenia — reguły dopisuje się na polach-liściach wewnątrz.
    */
   readonly reguly?: readonly RegulaId[];
+  /**
+   * Ukrywa pole w formularzu panelu, bez usuwania go ze schematu ani z dokumentu (patrz
+   * `paczki/cms/src/widocznosc.ts`, punkt 6a planu przycięcia zakresu edycji). Świadomie
+   * flaga, nie usunięcie klucza: `naprawGrupe` (`walidacja.ts`) buduje dokument WYŁĄCZNIE
+   * z kluczy schematu, a pierwsza publikacja po zmianie schematu nadpisuje wersję roboczą
+   * okrojonym dokumentem — usunięcie pola skasowałoby istniejącą treść bez ostrzeżenia.
+   * `ukryte: true` zostawia dane na miejscu, tylko odbiera redaktorowi kontrolkę.
+   *
+   * OSTRZEŻENIE: to pole NIE wyłącza samo z siebie klikalności w podglądzie strony. Jeśli
+   * kiedyś ukryjesz pole, które NA STRONIE jest opakowane w `<Edytowalne>`, klik w podglądzie
+   * stanie się MARTWY — bez błędu, ale i bez żadnej reakcji. Wtedy trzeba usunąć wrapper
+   * `<Edytowalne>` z komponentu strony RAZEM z ustawieniem `ukryte: true` na polu.
+   */
+  readonly ukryte?: boolean;
 }
 
 export interface PoleTekst extends PoleWspolne {

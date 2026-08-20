@@ -355,6 +355,12 @@ function idzPoPolachGrupy(
 ) {
   const zrodlo = dane && typeof dane === "object" && !Array.isArray(dane) ? (dane as Record<string, unknown>) : {};
   for (const [klucz, p] of Object.entries(schemat)) {
+    // Pole ukryte w panelu (punkt 6a) nie ma kontrolki w formularzu — reguła, której redaktor
+    // nie ma jak spełnić, nie jest bramką jakości tylko blokadą: publikacja stanęłaby na 422
+    // z komunikatem wskazującym pole, którego w formularzu nie ma, bez żadnej drogi wyjścia
+    // (P5 z planu). Pomijamy TYLKO tu — `sprawdzWartoscPola` samo zostaje bez zmian, bo jest
+    // wołane per pole z żywego formularza, gdzie ukryte pole i tak nigdy nie trafi na wejście.
+    if (p.ukryte === true) continue;
     const sciezka = `${prefiks}.${klucz}`;
     const wartosc = zrodlo[klucz];
     if (p.typ === "grupa") {
