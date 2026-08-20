@@ -179,7 +179,13 @@ export function znajdzPoleWSekcji(def: SekcjaDefinicja, sciezkaWSekcji: string):
   let wynik: Pole | null = null;
   for (let i = 0; i < segmenty.length; i++) {
     const seg = segmenty[i];
-    const kandydat: Pole | undefined = /^\d+$/.test(seg) ? undefined : biezace[seg];
+    // `Object.hasOwn`, nie samo `biezace[seg]`: segment pochodzi ze ścieżki przysłanej w żądaniu,
+    // więc `__proto__`, `constructor` czy `toString` zwracałyby obiekt Z PROTOTYPU. Taki „kandydat"
+    // przechodził dalej, choć nie ma `.typ` — `zSchemaLisc` zwracało wtedy `undefined`, a wołający
+    // robił na tym `.safeParse()` i trasa oddawała 500 zamiast czystego 404 (audyt 20.08.2026).
+    // Zapisu to nigdy nie dawało, ale hałasowało w logach i było powtarzalne jednym żądaniem.
+    const kandydat: Pole | undefined =
+      /^\d+$/.test(seg) || !Object.hasOwn(biezace, seg) ? undefined : biezace[seg];
     if (!kandydat) {
       // Segment liczbowy = indeks w liście: schemat elementu jest tym samym obiektem
       // pól dla każdego indeksu, więc po prostu kontynuujemy z tym samym `elementSchema`.
