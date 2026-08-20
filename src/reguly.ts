@@ -284,30 +284,50 @@ export function sprawdzWartoscPola(
 
 // ── Reguła całodokumentowa: wykrzykniki ──────────────────────────────────────────────────
 
-/** Wszystkie WARTOŚCI TEKSTOWE (liście) dokumentu, ze ścieżkami — meta, wspólne i sekcje, rekurencyjnie przez grupa/lista. */
-function zbierzTekstyDokumentu(dokument: DokumentTresci): { sciezka: string; tekst: string }[] {
+/**
+ * Wszystkie WARTOŚCI TEKSTOWE (liście) dokumentu, ze ścieżkami — meta, wspólne i sekcje,
+ * rekurencyjnie przez grupa/lista.
+ *
+ * NAPRAWA (przegląd kodu, 20.08.2026, bloker punkt 1): ta funkcja chodziła dawniej PO
+ * DOKUMENCIE, nie po schemacie — nie znała flagi `ukryte` i wliczała do sumy wykrzykniki z pól,
+ * których redaktor nie ma jak dotknąć w formularzu (np. ukryte `kontakt.formularz.
+ * placeholderWiadomosc`). Skutek: limit wykrzykników wyczerpany ukrytym polem blokował
+ * publikację komunikatem wskazującym pole, którego w formularzu nie ma — bez żadnej drogi
+ * wyjścia dla redaktora (ten sam kształt błędu co P5 z planu, `idzPoPolachGrupy` niżej).
+ * Teraz chodzi WSPÓLNIE po schemacie i dokumencie (jak `idzPoPolachGrupy`) i pomija pola
+ * `ukryte === true` — grupa/lista ukryta pomija też CAŁĄ swoją zawartość, bo bez kontrolki na
+ * poziomie grupy nie ma jak dotrzeć do dzieci.
+ */
+function zbierzTekstyDokumentu(
+  schemat: SchematStrony,
+  dokument: DokumentTresci
+): { sciezka: string; tekst: string }[] {
   const wynik: { sciezka: string; tekst: string }[] = [];
 
-  function idzPoObiekcie(w: unknown, prefiks: string) {
-    if (typeof w === "string") {
-      wynik.push({ sciezka: prefiks, tekst: w });
-      return;
-    }
-    if (Array.isArray(w)) {
-      w.forEach((el, i) => idzPoObiekcie(el, `${prefiks}.${i}`));
-      return;
-    }
-    if (w && typeof w === "object") {
-      for (const [klucz, wartosc] of Object.entries(w as Record<string, unknown>)) {
-        idzPoObiekcie(wartosc, prefiks ? `${prefiks}.${klucz}` : klucz);
+  function idzPoSchemacie(schematPol: SchematPol, dane: unknown, prefiks: string) {
+    const zrodlo = dane && typeof dane === "object" && !Array.isArray(dane) ? (dane as Record<string, unknown>) : {};
+    for (const [klucz, p] of Object.entries(schematPol)) {
+      if (p.ukryte === true) continue; // patrz komentarz `idzPoPolachGrupy` — ten sam powód (P5).
+      const sciezka = `${prefiks}.${klucz}`;
+      const wartosc = zrodlo[klucz];
+      if (p.typ === "grupa") {
+        idzPoSchemacie(p.pola, wartosc, sciezka);
+      } else if (p.typ === "lista") {
+        const elementy = Array.isArray(wartosc) ? wartosc : [];
+        elementy.forEach((el, i) => idzPoSchemacie(p.elementSchema, el, `${sciezka}.${i}`));
+      } else if (typeof wartosc === "string") {
+        wynik.push({ sciezka, tekst: wartosc });
       }
     }
   }
 
-  idzPoObiekcie(dokument.meta, "meta");
-  idzPoObiekcie(dokument.wspolne, "wspolne");
-  for (const sekcja of dokument.sekcje) {
-    idzPoObiekcie(sekcja.pola, sekcja.id);
+  idzPoSchemacie(schemat.meta, dokument.meta, "meta");
+  idzPoSchemacie(schemat.wspolne, dokument.wspolne, "wspolne");
+  const mapaDef = new Map(schemat.sekcje.map((s) => [s.id, s]));
+  for (const sekcjaDok of dokument.sekcje) {
+    const def = mapaDef.get(sekcjaDok.id);
+    if (!def) continue;
+    idzPoSchemacie(def.pola, sekcjaDok.pola, def.id);
   }
   return wynik;
 }
@@ -317,13 +337,17 @@ function zbierzTekstyDokumentu(dokument: DokumentTresci): { sciezka: string; tek
  * suma nie przekracza limitu; `ostrzezenie` przy dokładnie jednym za dużo; `blad` od dwóch za
  * dużo. Ścieżka naruszenia wylicza WSZYSTKIE pola, które niosą choć jeden wykrzyknik — redaktor
  * dostaje listę, gdzie szukać, nie tylko sumę.
+ *
+ * Bierze `schemat` (od 20.08.2026, przegląd kodu, punkt 1) — patrz komentarz przy
+ * `zbierzTekstyDokumentu` powyżej: bez schematu ta funkcja nie ma jak odsiać pól `ukryte`.
  */
 export function sprawdzWykrzyknikiDokumentu(
+  schemat: SchematStrony,
   dokument: DokumentTresci,
   config: KonfiguracjaRegulKopii = {}
 ): Naruszenie[] {
   const limit = config.maksWykrzyknikowDokument ?? 1;
-  const teksty = zbierzTekstyDokumentu(dokument);
+  const teksty = zbierzTekstyDokumentu(schemat, dokument);
   const zWykrzyknikami = teksty
     .map((t) => ({ ...t, liczba: (t.tekst.match(/!/g) ?? []).length }))
     .filter((t) => t.liczba > 0);
@@ -447,6 +471,6 @@ export function zbierzNaruszeniaDokumentu(schemat: SchematStrony, dokument: Doku
     idzPoPolachGrupy(def.pola, sekcjaDok.pola, def.id, config, wynik);
   }
 
-  wynik.push(...sprawdzWykrzyknikiDokumentu(dokument, config));
+  wynik.push(...sprawdzWykrzyknikiDokumentu(schemat, dokument, config));
   return wynik;
 }

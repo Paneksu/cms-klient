@@ -131,6 +131,16 @@ export function zdefiniujSchemat(definicja: {
     if (idy.has(s.id)) {
       throw new Error(`[cms] zduplikowane id sekcji w schemacie: "${s.id}"`);
     }
+    // `meta` i `wspolne` to ZAREZERWOWANE korzenie dokumentu (`DokumentTresci.meta`,
+    // `DokumentTresci.wspolne`, patrz `typy.ts`) — `lib/tresc.ts` i `lib/edytorStan.ts`
+    // rozpoznają je po SAMEJ NAZWIE, nie po żadnym innym oznaczeniu. Sekcja klienta o tym samym
+    // `id` zapisywałaby się po cichu do `dane.meta`/`dane.wspolne` zamiast do własnego miejsca w
+    // `dane.sekcje` — cicha utrata treści przy pierwszym zapisie, bez żadnego błędu po drodze.
+    // Domknięcie zamiast czekać, aż realny schemat klienta na to trafi (przegląd kodu,
+    // 20.08.2026, punkt 6).
+    if (s.id === "meta" || s.id === "wspolne") {
+      throw new Error(`[cms] id sekcji "${s.id}" jest zarezerwowane (korzeń dokumentu) — wybierz inne id.`);
+    }
     idy.add(s.id);
   }
   return definicja;
