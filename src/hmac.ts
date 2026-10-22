@@ -1,33 +1,27 @@
 /**
- * Podpis HMAC-SHA256 kontraktu publikacja→rewalidacja (ADR, sekcja "Jak strona czyta treść",
- * punkt 3 planu fazy 2). Jedna implementacja, konsumowana przez OBIE strony kontraktu:
+ * Podpis HMAC-SHA256 kontraktu publikacja → rewalidacja. Jedna implementacja dla obu stron:
  *
- *   - panel (`edytor.panekweb.pl/lib/publikacja.ts`) PODPISUJE żądanie do `webhook_url` strony,
- *   - wizytówka (`ddcarspa.pl/app/api/rewalidacja/route.ts`) WERYFIKUJE ten podpis.
+ *   - panel edycji PODPISUJE żądanie wysyłane na `webhook_url` strony,
+ *   - strona klienta WERYFIKUJE ten podpis w swojej trasie rewalidacji.
  *
- * Trzymanie tej logiki w DWÓCH niezależnych plikach (jeden po stronie panelu, drugi po
- * stronie strony) to dokładnie ten rodzaj rozjazdu, który już raz kosztował czas w tym
- * projekcie (dwie kopie schematu, `wiedza/stan/stan-edytora-cms.md`, PUŁAPKI) — stąd wspólna
- * paczka `@panekweb/cms`, którą obie aplikacje i tak już importują.
+ * Dwie niezależne kopie tej logiki (po jednej w każdej aplikacji) prędzej czy później się
+ * rozjadą, dlatego żyje we wspólnej paczce, którą obie aplikacje i tak importują.
  *
- * Ładunek podpisu to `${timestamp}.${klucz}` — `klucz` jest identyfikatorem tenanta
- * (`tresci.strony.klucz`), nie sekretem, ale wiązanie go w podpis chroni przed przeklejeniem
- * ważnego podpisu jednej strony do żądania rewalidacji innej (każda strona ma OSOBNY sekret
- * w `tresci.sekrety_stron`, ale w razie pomyłki w konfiguracji to dodatkowa warstwa).
+ * Ładunek podpisu to `${timestamp}.${klucz}`. `klucz` jest identyfikatorem strony, nie sekretem,
+ * ale wiązanie go w podpis chroni przed przeklejeniem ważnego podpisu jednej strony do żądania
+ * rewalidacji innej. Każda strona ma osobny sekret, więc to druga warstwa na wypadek pomyłki
+ * w konfiguracji.
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-/** Domyślne okno ważności podpisu — 5 minut, zgodnie ze zleceniem (ochrona przed replay). */
+/** Domyślne okno ważności podpisu: 5 minut (ochrona przed powtórzeniem żądania). */
 export const OKNO_WAZNOSCI_PODPISU_MS = 5 * 60 * 1000;
 
 /**
- * Okno ważności podpisu podglądu (token w URL `/podglad?t=...` I ciasteczko `cms_podglad`) —
- * 30 minut, zgodnie ze zleceniem fazy 3 ("faza 3, część pierwsza — tryb podglądu"). Stała
- * jest TU, w paczce wspólnej dla obu aplikacji (`edytor.panekweb.pl/lib/podglad.ts` generuje
- * token, `ddcarspa.pl/lib/podgladAuth.ts` weryfikuje token i ciasteczko), z tego samego
- * powodu co `OKNO_WAZNOSCI_PODPISU_MS` wyżej: dwie niezależne kopie tej samej liczby w dwóch
- * repo to gwarantowany rozjazd (patrz komentarz nad `OKNO_WAZNOSCI_PODPISU_MS`).
+ * Okno ważności podpisu podglądu (token w URL `/podglad?t=...` i ciasteczko `cms_podglad`): 30 minut.
+ * Panel generuje token, strona weryfikuje token i ciasteczko. Stała siedzi tutaj z tego samego
+ * powodu co `OKNO_WAZNOSCI_PODPISU_MS`: ta sama liczba w dwóch repozytoriach to pewny rozjazd.
  */
 export const OKNO_WAZNOSCI_PODGLADU_MS = 30 * 60 * 1000;
 

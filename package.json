@@ -2,7 +2,8 @@
   "name": "@panekweb/cms",
   "version": "0.5.0",
   "private": true,
-  "description": "Kontrakt schema-driven CMS-a wizytówek: typy pól, builder schematu, walidacja zodem, interpolacja cen. Konsument (panel edytora, strony klientów) importuje wprost ze źródeł TS — patrz README.md.",
+  "description": "Schema-driven CMS contract in plain TypeScript: field types, schema builder, repairing validation, HMAC-SHA256 signed revalidation webhooks. Consumers import the TS sources directly, see README.md.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -24,7 +25,24 @@
     "src",
     "README.md"
   ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
   "peerDependencies": {
     "zod": "^3.24.1 || ^4.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.0",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "eslint": "^9.30.0",
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.35.0",
+    "vitest": "^3.2.0",
+    "zod": "^3.24.1"
   }
 }
